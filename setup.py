@@ -1,7 +1,7 @@
 import os
 from datetime import datetime
 from enum import Enum
-import shutil
+from shutil import copy2
 
 """
     1. Setear carpeta de busqueda
@@ -14,11 +14,11 @@ import shutil
 
 """
 # this folder can delete it
-PATH = r"D:\Usuarios\Rodrigo\Documents\BackUp CelularesViejos\Memoria NEXUS6P\Square InstaPic"
-PATH_TEST = r"D:\Usuarios\Rodrigo\Documents\BackUp CelularesViejos\Memoria NEXUS6P\TEST"
+PATH = r"D:\Usuarios\Rodrigo\Documents\BackUp CelularesViejos\Memoria NEXUS6P\FOTOS DE MI CAMARA"
+_PATH_TEST = r"D:\Usuarios\Rodrigo\Documents\BackUp CelularesViejos\Memoria NEXUS6P\TEST"
 
 
-my_dict = {}
+
 
 
 class Month(Enum):
@@ -35,7 +35,7 @@ class Month(Enum):
     NOVEMBER = 11
     DECEMBER = 12
 
-def select_only_images():
+def select_only_images(my_dict):
     for file in os.scandir(PATH):
        if file.is_file:     
         tuple_file = os.path.splitext(file.name) 
@@ -45,7 +45,6 @@ def select_only_images():
                 var_year = str(time_modified.year)
                 var_month = get_month(time_modified.month)
                 key = '-'.join([var_year, var_month])
-                global my_dict
                 value = my_dict.get(key)
                 if value == None:
                     my_dict[key] = [file]
@@ -54,8 +53,13 @@ def select_only_images():
         elif tuple_file[1] == '.HEIC':
                 pass
 
-def recursive_searching(dct, path):
-    _dir_entry = os.scandir(path)
+
+
+    # _dir_entry = os.scandir(path)
+    
+    # if is empty? ->  NO!
+        #  first: is folders? -> YES!
+        # recursive_searching(dct, path)   
     
 
 
@@ -110,7 +114,7 @@ def create_folders():
         print(key)
         create_folder_year = True
         create_folder_month = True
-        for file in os.scandir(PATH_TEST):
+        for file in os.scandir(_PATH_TEST):
             if file.is_dir:
                 print(file.name)
 
@@ -125,18 +129,18 @@ def create_folders():
                                 create_folder_month = False
                                 # if true create folder month
                             if create_folder_month:
-                                os.mkdir(PATH_TEST + r'\\' + key.split('-')[0] + r'\\' + key.split('-')[1]) 
-                                path_str = PATH_TEST + r'\\' + key.split('-')[0] + r'\\' + key.split('-')[1]
+                                os.mkdir(_PATH_TEST + r'\\' + key.split('-')[0] + r'\\' + key.split('-')[1]) 
+                                path_str = _PATH_TEST + r'\\' + key.split('-')[0] + r'\\' + key.split('-')[1]
                                 # copy files to dst folder
                                 put_files_in_folder(key, path_str)
                                 break                                                 
         
         if create_folder_year:
             # create year folder
-            os.mkdir(PATH_TEST + r'\\' + key.split('-')[0])
+            os.mkdir(_PATH_TEST + r'\\' + key.split('-')[0])
             # create month folder
-            os.mkdir(PATH_TEST + r'\\' + key.split('-')[0] + r'\\' + key.split('-')[1])
-            path_str = PATH_TEST + r'\\' + key.split('-')[0] + r'\\' + key.split('-')[1]
+            os.mkdir(_PATH_TEST + r'\\' + key.split('-')[0] + r'\\' + key.split('-')[1])
+            path_str = _PATH_TEST + r'\\' + key.split('-')[0] + r'\\' + key.split('-')[1]
             # copy files to dst folder
             put_files_in_folder(key, path_str)
 
@@ -145,7 +149,7 @@ def put_files_in_folder(key, dst_path):
     # 2. move files in respective folders
     array = my_dict.get(key)
     for f in array:
-        shutil.copy2(f, dst_path)
+        copy2(f, dst_path)
 
 
 def test_binary(init, dct: dict):
@@ -153,31 +157,56 @@ def test_binary(init, dct: dict):
     final = len(key_ls)
     while init < final:
         list_images = dct.get(key_ls[init])
-        list_dir_years = list(os.scandir(PATH_TEST))
+        list_dir_years = list(os.scandir(_PATH_TEST))
         year_name = key_ls[init].split('-')[0]
         month_name = key_ls[init].split('-')[1]
         exist_folder_year = find_folder_year(list_dir_years, year_name, len(list_dir_years))
 
         if exist_folder_year:
-            abs_path = os.path.join(PATH_TEST, year_name)
+            abs_path = os.path.join(_PATH_TEST, year_name)
             list_dir_months = list(os.scandir(abs_path))
             exist_folder_month = find_folder_month(list_dir_months, month_name, len(list_dir_months))
         else:
             exist_folder_month = False
 
-        dst_images = os.path.join(PATH_TEST, year_name, month_name)
+        dst_images = os.path.join(_PATH_TEST, year_name, month_name)
 
         if exist_folder_year and exist_folder_month:
-            move_images_in_folder(list_images, 0, dst_images)
             # put images inside exactly folders
+            move_images_in_folder(list_images, dst_images)
         elif exist_folder_year and not exist_folder_month:
             os.mkdir(dst_images)
-            move_images_in_folder(list_images, 0, dst_images)
+            move_images_in_folder(list_images, dst_images)
         else:
-            os.mkdir(PATH_TEST + r'\\' + year_name)
+            os.mkdir(os.path.join(_PATH_TEST, year_name))
             os.mkdir(dst_images)
-            move_images_in_folder(list_images, 0, dst_images)
+            move_images_in_folder(list_images, dst_images)
         init = init + 1
+
+def recursive_searching(path, my_dict):
+    iter = os.scandir(path)
+    for _fy_system in iter:
+        if _fy_system.is_dir(): 
+            print(_fy_system.path)
+            recursive_searching(_fy_system.path, my_dict)
+        else:
+            _stat_modified = os.stat(_fy_system.path).st_mtime
+            _time_modified = datetime.fromtimestamp(_stat_modified)
+            year = str(_time_modified.year)
+            month = get_month(_time_modified.month)
+            key = '-'.join([year, month])
+            if os.path.splitext(_fy_system.path)[1] == '.jpg':        
+                value = my_dict.get(key)
+                if value == None:
+                    my_dict[key] = [_fy_system]
+                else:
+                    value.append(_fy_system)
+            elif os.path.splitext(_fy_system.path)[1] == '.HEIC':
+                value = my_dict.get(key)
+                if value == None:
+                    my_dict[key] = [_fy_system]
+                else:
+                    value.append(_fy_system)
 
 def find_folder_year(path, key, final):
     x = 0
@@ -195,14 +224,15 @@ def find_folder_month(path, key, final):
         x = x + 1
     return False
 
-def move_images_in_folder(array_images, init, dst_path):
-    while init < len(array_images):
-        shutil.copy2(array_images[init], dst_path)
-        init = init + 1
+def move_images_in_folder(array_images, dst_path):
+    for img in array_images:
+        copy2(img, dst_path)
 
 if __name__ == "__main__":  
-    select_only_images()
+    my_dict = dict()
+    # select_only_images()
     start = datetime.now()
+    recursive_searching(PATH, my_dict)
     test_binary(0, my_dict)
     # create_folders()
     end = datetime.now()
