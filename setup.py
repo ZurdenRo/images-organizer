@@ -1,7 +1,10 @@
+from codecs import Codec, StreamReader, StreamWriter
+from multiprocessing import Pool
 import os
 from datetime import datetime
 from enum import Enum
-from shutil import copy2
+from shutil import copy2, copy
+import logging
 
 """
     1. Setear carpeta de busqueda
@@ -16,9 +19,6 @@ from shutil import copy2
 # this folder can delete it
 PATH = r"D:\Usuarios\Rodrigo\Documents\BackUp CelularesViejos\Memoria NEXUS6P\FOTOS DE MI CAMARA"
 _PATH_TEST = r"D:\Usuarios\Rodrigo\Documents\BackUp CelularesViejos\Memoria NEXUS6P\TEST"
-
-
-
 
 
 class Month(Enum):
@@ -51,15 +51,7 @@ def select_only_images(my_dict):
                 else:
                     value.append(file)
         elif tuple_file[1] == '.HEIC':
-                pass
-
-
-
-    # _dir_entry = os.scandir(path)
-    
-    # if is empty? ->  NO!
-        #  first: is folders? -> YES!
-        # recursive_searching(dct, path)   
+                pass  
     
 
 
@@ -152,9 +144,10 @@ def put_files_in_folder(key, dst_path):
         copy2(f, dst_path)
 
 
-def test_binary(init, dct: dict):
+def move_images(dct: dict):
     key_ls = list(dct)
     final = len(key_ls)
+    init = 0
     while init < final:
         list_images = dct.get(key_ls[init])
         list_dir_years = list(os.scandir(_PATH_TEST))
@@ -172,8 +165,7 @@ def test_binary(init, dct: dict):
         dst_images = os.path.join(_PATH_TEST, year_name, month_name)
 
         if exist_folder_year and exist_folder_month:
-            # put images inside exactly folders
-            move_images_in_folder(list_images, dst_images)
+            move_images_in_folder(list_images, dst_images) # put images inside exactly folders
         elif exist_folder_year and not exist_folder_month:
             os.mkdir(dst_images)
             move_images_in_folder(list_images, dst_images)
@@ -185,28 +177,28 @@ def test_binary(init, dct: dict):
 
 def recursive_searching(path, my_dict):
     iter = os.scandir(path)
-    for _fy_system in iter:
-        if _fy_system.is_dir(): 
-            print(_fy_system.path)
-            recursive_searching(_fy_system.path, my_dict)
+    for _fsystem in iter:
+        if _fsystem.is_dir(): 
+            print(_fsystem.path)
+            recursive_searching(_fsystem.path, my_dict)
         else:
-            _stat_modified = os.stat(_fy_system.path).st_mtime
+            _stat_modified = os.stat(_fsystem.path).st_mtime
             _time_modified = datetime.fromtimestamp(_stat_modified)
             year = str(_time_modified.year)
             month = get_month(_time_modified.month)
             key = '-'.join([year, month])
-            if os.path.splitext(_fy_system.path)[1] == '.jpg':        
+            if os.path.splitext(_fsystem.path)[1] == '.jpg':        
                 value = my_dict.get(key)
                 if value == None:
-                    my_dict[key] = [_fy_system]
+                    my_dict[key] = [_fsystem]
                 else:
-                    value.append(_fy_system)
-            elif os.path.splitext(_fy_system.path)[1] == '.HEIC':
+                    value.append(_fsystem)
+            elif os.path.splitext(_fsystem.path)[1] == '.HEIC':
                 value = my_dict.get(key)
                 if value == None:
-                    my_dict[key] = [_fy_system]
+                    my_dict[key] = [_fsystem]
                 else:
-                    value.append(_fy_system)
+                    value.append(_fsystem)
 
 def find_folder_year(path, key, final):
     x = 0
@@ -228,13 +220,47 @@ def move_images_in_folder(array_images, dst_path):
     for img in array_images:
         copy2(img, dst_path)
 
+def organize_by_threads(key):
+        list_images = my_dict[key]
+        list_dir_years = list(os.scandir(_PATH_TEST))
+        year_name = key.split('-')[0]
+        month_name = key.split('-')[1]
+        exist_folder_year = find_folder_year(list_dir_years, year_name, len(list_dir_years))
+
+        if exist_folder_year:
+            abs_path = os.path.join(_PATH_TEST, year_name)
+            list_dir_months = list(os.scandir(abs_path))
+            exist_folder_month = find_folder_month(list_dir_months, month_name, len(list_dir_months))
+        else:
+            exist_folder_month = False
+        
+        dst_images = os.path.join(_PATH_TEST, year_name, month_name)
+
+        if exist_folder_year and exist_folder_month:
+            move_images_in_folder(list_images, dst_images) # put images inside exactly folders
+        elif exist_folder_year and not exist_folder_month:
+            os.mkdir(dst_images)
+            move_images_in_folder(list_images, dst_images)
+        else:
+            os.mkdir(os.path.join(_PATH_TEST, year_name))
+            os.mkdir(dst_images)
+            move_images_in_folder(list_images, dst_images)
+
 if __name__ == "__main__":  
     my_dict = dict()
-    # select_only_images()
+    logging.basicConfig(format='%(levelname)s : %(message)s', level=logging.INFO)
     start = datetime.now()
     recursive_searching(PATH, my_dict)
-    test_binary(0, my_dict)
-    # create_folders()
+    move_images(my_dict)
     end = datetime.now()
-    diff = end - start
-    print(diff.total_seconds())
+    final = end - start
+    logging.info("result: %s", final.total_seconds())
+    
+
+
+
+
+
+
+
+    
