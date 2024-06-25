@@ -1,9 +1,7 @@
-from codecs import Codec, StreamReader, StreamWriter
-from multiprocessing import Pool
 import os
 from datetime import datetime
 from enum import Enum
-from shutil import copy2, copy
+from shutil import copy2
 import logging
 
 """
@@ -34,26 +32,6 @@ class Month(Enum):
     OCTOBER = 10
     NOVEMBER = 11
     DECEMBER = 12
-
-def select_only_images(my_dict):
-    for file in os.scandir(PATH):
-       if file.is_file:     
-        tuple_file = os.path.splitext(file.name) 
-        if tuple_file[1] == '.jpg':
-                m_time = os.path.getmtime(file) 
-                time_modified = datetime.fromtimestamp(m_time)
-                var_year = str(time_modified.year)
-                var_month = get_month(time_modified.month)
-                key = '-'.join([var_year, var_month])
-                value = my_dict.get(key)
-                if value == None:
-                    my_dict[key] = [file]
-                else:
-                    value.append(file)
-        elif tuple_file[1] == '.HEIC':
-                pass  
-    
-
 
 def get_month(number_month: int) -> str:
     match number_month:
@@ -95,54 +73,6 @@ def get_month(number_month: int) -> str:
         
         case _:
             return 'ERROR'
-
-def create_folders():
-    # exist folder year? no -> create folder year -> create folder month -> put file in folder
-    # exist folder year? yes -> exist folder month? no -> create folder month -> put file in folder
-    # exist folder year? yes -> exist folder month? yes -> put file in folder
-
-    # 1. create folders years and months
-    for key in my_dict:
-        print(key)
-        create_folder_year = True
-        create_folder_month = True
-        for file in os.scandir(_PATH_TEST):
-            if file.is_dir:
-                print(file.name)
-
-                if file.name == key.split('-')[0]:
-                    create_folder_year = False
-                    print(file.path)
-                    for f in os.scandir(file.path):
-                        if f.is_dir:
-                            print(f.name)
-                            print(key.split('-')[1])
-                            if f.name == key.split('-')[1]:
-                                create_folder_month = False
-                                # if true create folder month
-                            if create_folder_month:
-                                os.mkdir(_PATH_TEST + r'\\' + key.split('-')[0] + r'\\' + key.split('-')[1]) 
-                                path_str = _PATH_TEST + r'\\' + key.split('-')[0] + r'\\' + key.split('-')[1]
-                                # copy files to dst folder
-                                put_files_in_folder(key, path_str)
-                                break                                                 
-        
-        if create_folder_year:
-            # create year folder
-            os.mkdir(_PATH_TEST + r'\\' + key.split('-')[0])
-            # create month folder
-            os.mkdir(_PATH_TEST + r'\\' + key.split('-')[0] + r'\\' + key.split('-')[1])
-            path_str = _PATH_TEST + r'\\' + key.split('-')[0] + r'\\' + key.split('-')[1]
-            # copy files to dst folder
-            put_files_in_folder(key, path_str)
-
-
-def put_files_in_folder(key, dst_path):
-    # 2. move files in respective folders
-    array = my_dict.get(key)
-    for f in array:
-        copy2(f, dst_path)
-
 
 def move_images(dct: dict):
     key_ls = list(dct)
